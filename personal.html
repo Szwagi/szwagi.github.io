@@ -337,7 +337,8 @@
             let dom_btn = document.createElement('button');
             dom_btn.innerText = 'Copy share link to clipboard';
             dom_btn.onclick = function() {
-                navigator.clipboard.writeText(`https://szwagi.github.io/personal.html?p=[U:1:${player_id}]`);
+                let steamid64 = BigInt('76561197960265728') + BigInt(player_id);
+                navigator.clipboard.writeText(`https://szwagi.github.io/personal.html?p=${steamid64}`);
             }
             dom_main.appendChild(dom_btn);
         }
