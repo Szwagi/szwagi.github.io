@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KZ Personal Recap 2022</title>
+<link rel="stylesheet" href="style.css">
+
+<header>
+    <h1>KZ Personal Recap 2022</h1>
+    <p>
+        <a href="index.html">Click here to view the community recap.</a>
+    </p>
+    <input id="steamid" type="text" placeholder="Steam ID...">
+    <a href="" onclick="open_steamid_io()">�</a>
+    <span style="margin-left:10px"></span><br>
+    <button type="button" style="top: 50px;" onclick="try_load_data()">GO</button>
+</header>
+
+<main id="main"></main>
+
+<script>
+    function open_steamid_io() {
+        window.open('https://steamid.io/', '_blank').focus();
+    }
+
+    function get_player_id(input) {
+        const REGEX_STEAMID64 = /^[0-9]{17}$/;
+        const REGEX_STEAMID2 = /^STEAM_[0-5]:[01]:\d+$/;
+        const REGEX_STEAMID3 = /^\[U:1:[0-9]+\]$/;
+
+        if (input.match(REGEX_STEAMID64)) {
+            return (BigInt(input) - BigInt('76561197960265728')).toString();
+        }
+        else if (input.match(REGEX_STEAMID2)) {
+            let split = input.split(':');
+            return (parseInt(split[1]) + parseInt(split[2] * 2)).toString();
+        }
+        else if (input.match(REGEX_STEAMID3)) {
+            let split = input.split(':');
+            return parseInt(split[2]).toString();
+        }
+
+        throw new Error('Incorrect Steam ID');
+    }
+    async function try_load_data() {
+        let dom_main = document.getElementById('main');
+        dom_main.innerText = '';
+        try {
+            let txt_steamid = document.getElementById('steamid');
+            let player_id = get_player_id(txt_steamid.value);
+            await load_data(player_id);
+        }
+        catch (e) {
+            dom_main.innerText = e;
+        }
+    }
+    async function load_data(player_id) {
+        let last_4 = player_id.substr(player_id.length - 4).padStart(4, '0');
+
+        let data_response = await fetch('/data/'+last_4);
+        let data = await data_response.text();
+
+        let lineStart = player_id + ':';
+        let lines = data.split('\n');
+        for (let line of lines) {
+            if (line.startsWith(lineStart)) {
+                load_data_from_line(line);
+                return;
+            }
+        }
+
+        throw new Error('Player not found');
+    }
+    function estimate_duration_format(ticks) {
+        let seconds = ticks/128;
+        if (seconds < 300) 
+            return `${Math.round(seconds)} seconds`;
+
+        let minutes = seconds/60;
+        if (minutes < 360)
+            return `${Math.round(minutes)} minutes`;
+
+        let hours = minutes/60;
+        if (hours < 168)
+            return `${Math.round(hours)} hours`;
+
+        let days = hours/24;
+            return `${Math.round(days)} days`;
+    }
+    function ticks_to_time_string(ticks) {
+        const tickrate = 128;
+        const timeInSeconds = ticks / tickrate;
+
+        if (timeInSeconds >= 3600) {
+            const hours = Math.floor(timeInSeconds / 3600);
+            const minutes = Math.floor(timeInSeconds % 3600 / 60).toString().padStart(2, '0');
+            const seconds = Math.floor(timeInSeconds % 60).toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+        else if (timeInSeconds >= 60) {
+            const minutes = Math.floor(timeInSeconds % 3600 / 60);
+            const seconds = Math.floor(timeInSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+        else {
+            const seconds = Math.floor(timeInSeconds % 60);
+            return `${seconds}`;
+        }
+    }
+    function course_name_format(map_name, course) {
+        if (course == 0)
+            return map_name;
+        return `${map_name} B${course}`;
+    }
+    function load_data_from_line(line) {
+        let split1 = line.split(':');
+        let player_name = decodeURIComponent(escape(window.atob((split1[1]))));
+        let mainmap_run_count_kzt = parseInt(split1[2]);
+        let mainmap_run_count_skz = parseInt(split1[3]);
+        let mainmap_run_count_vnl = parseInt(split1[4]);
+        let mainmap_run_count_total = mainmap_run_count_kzt + mainmap_run_count_skz + mainmap_run_count_vnl;
+        let bonus_run_count_kzt = parseInt(split1[5]);
+        let bonus_run_count_skz = parseInt(split1[6]);
+        let bonus_run_count_vnl = parseInt(split1[7]);
+        let bonus_run_count_total = bonus_run_count_kzt + bonus_run_count_skz + bonus_run_count_vnl;
+        let teleport_count_kzt = parseInt(split1[8]);
+        let teleport_count_skz = parseInt(split1[9]);
+        let teleport_count_vnl = parseInt(split1[10]);
+        let teleport_count_total = teleport_count_kzt + teleport_count_skz + teleport_count_vnl;
+        let run_time_sum_kzt = parseInt(split1[11]);
+        let run_time_sum_skz = parseInt(split1[12]);
+        let run_time_sum_vnl = parseInt(split1[13]);
+        let run_time_sum_total = run_time_sum_kzt + run_time_sum_skz + run_time_sum_vnl;
+
+        let run_count_kzt = mainmap_run_count_kzt + bonus_run_count_kzt;
+        let run_count_skz = mainmap_run_count_skz + bonus_run_count_skz;
+        let run_count_vnl = mainmap_run_count_vnl + bonus_run_count_vnl;
+        let run_count_total = mainmap_run_count_total + bonus_run_count_total;
+
+        let unique_mainmap_completions_total = parseInt(split1[14]);
+        let unique_mainmap_completions_kzt = parseInt(split1[15]);
+        let unique_mainmap_completions_skz = parseInt(split1[16]);
+        let unique_mainmap_completions_vnl = parseInt(split1[17]);
+        
+        let unique_bonus_completions_total = parseInt(split1[18]);
+        let unique_bonus_completions_kzt = parseInt(split1[19]);
+        let unique_bonus_completions_skz = parseInt(split1[20]);
+        let unique_bonus_completions_vnl = parseInt(split1[21]);
+        
+        let longest_runs = split1[22];
+        let longest_pro_runs = split1[23];
+        let maps_with_most_playtime = split1[24];
+        let maps_with_most_completions = split1[25];
+
+        let dom_main = document.getElementById('main');
+
+        {
+            let dom_p = document.createElement('p');
+            dom_p.innerText = `Hi, ${player_name}!`;
+            dom_main.appendChild(dom_p);
+        }
+
+        {
+            let dom_p = document.createElement('p');
+            let run_time_sum_total_fmt = estimate_duration_format(run_time_sum_total);
+            dom_p.innerHTML = `Last year, you submitted <b>${run_count_total}</b> runs, using <b>${teleport_count_total}</b> teleports, and they add up to <b>${run_time_sum_total_fmt}</b>.`;
+            dom_main.appendChild(dom_p);
+        }
+        {
+            let dom_li = document.createElement('li');
+            let run_time_sum_kzt_fmt = estimate_duration_format(run_time_sum_kzt);
+            dom_li.innerHTML = `KZTimer: <b>${run_count_kzt}</b> runs using <b>${teleport_count_kzt}</b> teleports (<b>${run_time_sum_kzt_fmt}</b>)`;
+            dom_main.appendChild(dom_li);
+        }
+        {
+            let dom_li = document.createElement('li');
+            let run_time_sum_skz_fmt = estimate_duration_format(run_time_sum_skz);
+            dom_li.innerHTML = `SimpleKZ: <b>${run_count_skz}</b> runs using <b>${teleport_count_skz}</b> teleports (<b>${run_time_sum_skz_fmt}</b>)`;
+            dom_main.appendChild(dom_li);
+        }
+        {
+            let dom_li = document.createElement('li');
+            let run_time_sum_vnl_fmt = estimate_duration_format(run_time_sum_vnl);
+            dom_li.innerHTML = `Vanilla: <b>${run_count_vnl}</b> runs using <b>${teleport_count_vnl}</b> teleports (<b>${run_time_sum_vnl_fmt}</b>)`;
+            dom_main.appendChild(dom_li);
+        }
+
+        dom_main.appendChild(document.createElement('hr'));
+
+        {
+            let dom_p = document.createElement('p');
+            dom_p.innerHTML = `You submitted <b>${mainmap_run_count_total}</b> runs on <b>${unique_mainmap_completions_total}</b> maps.`;
+            dom_main.appendChild(dom_p);
+        }
+        {
+            let dom_li = document.createElement('li');
+            dom_li.innerHTML = `KZTimer: <b>${mainmap_run_count_kzt}</b> runs on <b>${unique_mainmap_completions_kzt}</b> maps`;
+            dom_main.appendChild(dom_li);
+        }
+        {
+            let dom_li = document.createElement('li');
+            dom_li.innerHTML = `SimpleKZ: <b>${mainmap_run_count_skz}</b> runs on <b>${unique_mainmap_completions_skz}</b> maps`;
+            dom_main.appendChild(dom_li);
+        }
+        {
+            let dom_li = document.createElement('li');
+            dom_li.innerHTML = `Vanilla: <b>${mainmap_run_count_vnl}</b> runs on <b>${unique_mainmap_completions_vnl}</b> maps`;
+            dom_main.appendChild(dom_li);
+        }
+
+        {
+            let dom_p = document.createElement('p');
+            dom_p.innerHTML = `You submitted <b>${bonus_run_count_total}</b> runs on <b>${unique_bonus_completions_total}</b> bonuses.`;
+            dom_main.appendChild(dom_p);
+        }
+        {
+            let dom_li = document.createElement('li');
+            dom_li.innerHTML = `KZTimer: <b>${bonus_run_count_kzt}</b> runs on <b>${unique_bonus_completions_kzt}</b> bonuses`;
+            dom_main.appendChild(dom_li);
+        }
+        {
+            let dom_li = document.createElement('li');
+            dom_li.innerHTML = `SimpleKZ: <b>${bonus_run_count_skz}</b> runs on <b>${unique_bonus_completions_skz}</b> bonuses`;
+            dom_main.appendChild(dom_li);
+        }
+        {
+            let dom_li = document.createElement('li');
+            dom_li.innerHTML = `Vanilla: <b>${bonus_run_count_vnl}</b> runs on <b>${unique_bonus_completions_vnl}</b> bonuses`;
+            dom_main.appendChild(dom_li);
+        }
+
+        dom_main.appendChild(document.createElement('hr'));
+
+        if (longest_runs.length > 0) {
+            {
+                let dom_p = document.createElement('p');
+                dom_p.innerHTML = `Here are some of your longest runs.`;
+                dom_main.appendChild(dom_p);
+            }
+            {
+                let runs = longest_runs.split(',');
+                for (let run of runs) {
+                    let data = run.split('|');
+                    let ticks = data[0];
+                    let teleports = data[1];
+                    let map_name = data[2];
+                    let course = data[3];
+                    let time_str = ticks_to_time_string(ticks);
+
+                    let dom_li = document.createElement('li');
+                    dom_li.innerHTML = `<b>${time_str}</b> (<b>${teleports}</b> TPs) on <b>${map_name}</b>`;
+                    dom_main.appendChild(dom_li);
+                }
+                
+            }
+        }
+
+        if (longest_pro_runs.length > 0) {
+            {
+                let dom_p = document.createElement('p');
+                if (longest_runs.length > 0) {
+                    dom_p.innerHTML = `I'm being told you're a professional, so here's the same list but just PRO runs.`;
+                }
+                else {
+                    dom_p.innerHTML = `You only do PRO runs, true professional. Here are some of your longest runs.`;
+                }
+                dom_main.appendChild(dom_p);
+            }
+            {
+                let runs = longest_pro_runs.split(',');
+                for (let run of runs) {
+                    let data = run.split('|');
+                    let ticks = data[0];
+                    let map_name = data[2];
+                    let course = data[3];
+                    let time_str = ticks_to_time_string(ticks);
+
+                    let dom_li = document.createElement('li');
+                    dom_li.innerHTML = `<b>${time_str}</b> on <b>${map_name}</b>`;
+                    dom_main.appendChild(dom_li);
+                }
+                
+            }
+        }
+
+        dom_main.appendChild(document.createElement('hr'));
+
+        {
+            let dom_p = document.createElement('p');
+            dom_p.innerHTML = `The list of maps you spent most of your time on.`;
+            dom_main.appendChild(dom_p);
+        }
+        {
+            let runs = maps_with_most_playtime.split(',');
+            for (let run of runs) {
+                let data = run.split('|');
+                let map_name = data[0];
+                let course = data[1];
+                let ticks = data[2];
+                let course_name = course_name_format(map_name, course);
+                let time_fmt = estimate_duration_format(ticks);
+
+                let dom_li = document.createElement('li');
+                dom_li.innerHTML = `<b>${time_fmt}</b> on <b>${course_name}</b>`;
+                dom_main.appendChild(dom_li);
+            }
+            
+        }
+
+        dom_main.appendChild(document.createElement('hr'));
+
+        {
+            let dom_p = document.createElement('p');
+            dom_p.innerHTML = `You clicked the end timer quite a lot, here is the list of maps you did it most on.`;
+            dom_main.appendChild(dom_p);
+        }
+        {
+            let runs = maps_with_most_completions.split(',');
+            for (let run of runs) {
+                let data = run.split('|');
+                let map_name = data[0];
+                let count = data[1];
+
+                let dom_li = document.createElement('li');
+                dom_li.innerHTML = `<b>${count}</b> on <b>${map_name}</b>`;
+                dom_main.appendChild(dom_li);
+            }
+            
+        }
+    }
+</script>
+
+<footer>
+    Made by Szwagi, special thanks to zer0.k!
+</footer>
+
