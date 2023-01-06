@@ -336,8 +336,10 @@
         {
             let dom_btn = document.createElement('button');
             dom_btn.innerText = 'Copy share link to clipboard';
-            navigator.clipboard.writeText(`https://szwagi.github.io/personal.html?p=${player_id}`);
-            dom_main.appendChild(dom_li);
+            dom_btn.onclick = function() {
+                navigator.clipboard.writeText(`https://szwagi.github.io/personal.html?p=[U:1:${player_id}]`);
+            }
+            dom_main.appendChild(dom_btn);
         }
     }
 
