@@ -13,7 +13,7 @@
     <input id="steamid" type="text" placeholder="Steam ID...">
     <a id="steamid_io_link" href="https://steamid.io/">�</a>
     <span style="margin-left:10px"></span><br>
-    <button type="button" style="top: 50px;" onclick="try_load_data()">GO</button>
+    <button onclick="try_load_data()">GO</button>
 </header>
 
 <main id="main"></main>
@@ -116,6 +116,7 @@
     }
     function load_data_from_line(line) {
         let split1 = line.split(':');
+        let player_id = split1[0];
         let player_name = decodeURIComponent(escape(window.atob((split1[1]))));
         let mainmap_run_count_kzt = parseInt(split1[2]);
         let mainmap_run_count_skz = parseInt(split1[3]);
@@ -329,6 +330,23 @@
             }
             
         }
+
+        dom_main.appendChild(document.createElement('hr'));
+
+        {
+            let dom_btn = document.createElement('button');
+            dom_btn.innerText = 'Copy share link to clipboard';
+            navigator.clipboard.writeText(`https://szwagi.github.io/personal.html?p=${player_id}`);
+            dom_main.appendChild(dom_li);
+        }
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const steamid_param = params.get("p");
+    if (steamid_param != null) {
+        let txt_steamid = document.getElementById('steamid');
+        txt_steamid.value = steamid_param;
+        try_load_data();
     }
 </script>
 
